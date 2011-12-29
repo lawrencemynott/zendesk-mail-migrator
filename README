@@ -1,0 +1,69 @@
+Email Importer For Zendesk
+===========================
+If you currently use email for your support and are migrating to Zendesk then you'll likely need to find a way to import all of your existing requests. This Ruby library provides an easy and flexible way to pull mails from your server and import them as new tickets via the Zendesk REST API.
+
+Requirements
+------------
+The zendeskmailmigrator library was written and tested with Ruby 1.9.2
+
+mail is used for retrieving emails from your server https://github.com/mikel/mail
+
+    gem install mail
+
+libxml-ruby is used for creating the xml documents to deliver to the Zendesk REST API https://github.com/xml4r/libxml-ruby
+
+    gem install libxml-ruby
+
+Installation
+------------
+Currently zendeskmailmigrator is not hosted on rubygems so you'll need to manually download the files.
+
+Usage Examples
+--------------
+All major zendeskmailmigrator functions should be able to happen from the zendeskmailmigrator module. So you just need to require zendeskmailmigrator.rb to get started.
+
+Configuring mail retrieval and delivery to the Zendesk REST API can be done by passing the settings in a block to the defaults method, like this:
+
+ZendeskMailMigrator.defaults do
+  retriever_method :pop3, {:address    => "pop.gmail.com",
+                          :port       => 995,
+                          :user_name  => 'mysupportaddress@gmail.com',
+                          :password   => 'mypassword123',
+                          :enable_ssl => true}
+                          
+  delivery_method :xml, {:subdomain     => "companyname.zendesk.com",
+                        :username       => "owneraccount@domain.com",
+                        :password       => "password123"}
+end
+
+The retriever method passes it's arguments on to the Mail module so you can provide anything that is supported by the Mail library.
+
+You can then migrate selected mail from the configured address to the configured Zendesk account using the migrate function:
+
+# migrate the first 10 mails in ascending order
+ZendeskMailMigrator.migrate(:what => :first, :count => 10, :order => :asc)
+
+# migrate all mail
+ZendeskMailMigrator.migrate(:count => :all)
+
+The migrate function passes it's arguments on to the find method of the Mail library, so you can use any of the supported arguments.
+
+If you want to check what will be migrated before delivering it to the Zendesk REST API you can use the test delivery method:
+
+ZendeskMailMigrator.defaults do
+  delivery_method :test, {:output => 'logs/test_migration'}
+end
+
+This will generate xml data from all the imported mail and write it to the ./logs/test_migration directory. The current working directory is the default if no output directory is specified.
+
+A log file is generated each time you run a migration which contains the number of retrieved and converted mails, along with the requests and responses from the Zendesk REST API. By default this log file is called email_import_*datetimestamp*.log and is created in the current working directory.
+
+Roadmap
+-------
+These are the main items on my TODO list:
+- back date ticket creation to datetime of sent email
+- support attachments
+- strip tags from html only mail
+- support json conversion and delivery
+- allow specification of default values for ticket status, assignee, custom fields etc.
+- make library available as a gem
