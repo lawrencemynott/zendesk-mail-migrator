@@ -58,6 +58,11 @@ This will generate xml data from all the imported mail and write it to the ./log
 
 A log file is generated each time you run a migration which contains the number of retrieved and converted mails, along with the requests and responses from the Zendesk REST API. By default this log file is called email_import_*datetimestamp*.log and is created in the current working directory.
 
+Usage Notes
+-----------
+- When creating tickets through the Zendesk REST API the end user must already exist in the system, so you will need to ensure that all your users have been added before attempting a mail import. The easiest way to do this is via the csv user import tool in Zendesk.
+- The Mail library returns all retrieved mail in a single array, which means that if you are retrieving a large amount of mail or emails with large attachments your memory usage is going to be high. In testing I found that I was able to retrieve 500 - 1000 emails at a time with moderate memory usage (50 - 80MB), if you're going to need to import significantly more than this I would recommend migrating in batches.
+
 Roadmap
 -------
 These are the main items on my TODO list:
