@@ -18,5 +18,9 @@ module ZendeskMailMigrator
       @log.flush
     end
     
+    def close_log
+      @log.close if @log
+    end
+    
   end
 end

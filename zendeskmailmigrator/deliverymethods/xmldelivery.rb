@@ -1,4 +1,5 @@
 require "net/http"
+require 'libxml'
 
 module ZendeskMailMigrator
   
@@ -11,6 +12,7 @@ module ZendeskMailMigrator
                         :username           => "lawrence@zendesk.com",
                         :password           => "croc287",
                         :use_ssl?           => true,
+                        :x_on_behalf_of?    => true,
                         :content_type       => "application/xml" }.merge!(values)
     end
     
@@ -19,10 +21,15 @@ module ZendeskMailMigrator
     def deliver(tickets)
       # 3 things to think about: limiting to 700 requests per minute, dealing with errors and logging
       # Do the api calls to create the tickets, currently limit api calls to 1 every 0.1 seconds which stays well within the 700 rpm rate limit
-      protocol = settings[:use_ssl] ? "https" : "http"
-      uri = URI.parse("#{protocol}://#{settings[:subdomain]}")
-
-      http = Net::HTTP.new(uri.host, uri.port)
+      if settings[:use_ssl?]
+        uri = URI.parse("https://#{settings[:subdomain]}")
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      else
+        uri = URI.parse("http://#{settings[:subdomain]}")
+        http = Net::HTTP.new(uri.host, uri.port)
+      end
 
       # POST request
       req = build_post_request(tickets[0])
@@ -31,36 +38,28 @@ module ZendeskMailMigrator
       # Log results
       log_post(req, resp, 0)
       
-      # Note on retrieving session cookie if request was successful
-      # api seems to work by giving you a session cookie only useable for the thing you made a successful call for.
-      # For example if the X-On-Behalf-Of user can't be authenticated the cookie won't work or if you make a successful Get call the
-      # cookie will only authenticate you to submit to /tickets.xml not sure why this is at the moment.
-      cookie = nil
-      
-      # POST remaining tickets limiting to 600 requests per minute using the session cookie for auth
+      # POST remaining tickets limiting to 600 requests per minute
       i=1
       repeat_every(0.1) do
         break if i==tickets.length
-        if cookie.nil? and resp.code == "201"
-          cookie = resp["set-cookie"] # see note above about the reason for this
-        end
-        req = build_post_request(tickets[i], cookie)
+        req = build_post_request(tickets[i])
         resp = http.request(req)
         log_post(req, resp, i)
         i+=1
       end
     end
     
-    def build_post_request(ticket, session_cookie = nil)
+    def build_post_request(ticket)
       request = Net::HTTP::Post.new(settings[:path])
-      request.body = ticket[:doc].to_s
-      if session_cookie.nil?
-        request.basic_auth(settings[:username], settings[:password])
+      if settings[:x_on_behalf_of?]
+        request["X-On-Behalf-Of"] = ticket[:requester]
       else
-        request["Cookie"] = session_cookie
+        requester_email = LibXML::XML::Node.new("requester-email", ticket[:requester])
+        ticket[:doc].root << requester_email
       end
+      request.basic_auth(settings[:username], settings[:password])
       request["Content-Type"] = settings[:content_type]
-      request["X-On-Behalf-Of"] = ticket[:requester]
+      request.body = ticket[:doc].to_s
       request
     end
     

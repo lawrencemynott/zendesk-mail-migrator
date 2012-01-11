@@ -13,10 +13,12 @@ module ZendeskMailMigrator
       super
     end
     
+    attr_reader :conversion_method
+    
     def delivery_method(method = nil, settings = {})
       return @delivery_method if @delivery_method && method.nil?
       @delivery_method = lookup_delivery_method(method).new(settings)
-      @conversion_method = lookup_conversion_method(method).new
+      @conversion_method = lookup_conversion_method(method).new(settings)
     end
     
     def lookup_delivery_method(method)
@@ -32,12 +34,6 @@ module ZendeskMailMigrator
       else
         method
       end
-    end
-    
-    def conversion_method(method=nil, settings = {})
-      return @conversion_method if @conversion_method && method.nil?
-      @delivery_method = lookup_delivery_method(method).new(settings)
-      @conversion_method = lookup_conversion_method(method).new
     end
     
     def lookup_conversion_method(method)
