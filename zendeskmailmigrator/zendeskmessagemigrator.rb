@@ -28,9 +28,11 @@ module ZendeskMailMigrator
       when :xml
         ZendeskMailMigrator::XMLDelivery
       when :json
-        ZendeskMailMigrator::XMLDelivery #json delivery to be implemented in a later version
-      when :test
-        ZendeskMailMigrator::FileDelivery #output tickets to be delivered as xml files
+        ZendeskMailMigrator::JSONDelivery
+      when :xmltest
+        ZendeskMailMigrator::XMLFileDelivery #output tickets to be delivered as xml files
+      when :jsontest
+        ZendeskMailMigrator::JSONFileDelivery #output tickets to be delivered as json files
       else
         method
       end
@@ -43,9 +45,11 @@ module ZendeskMailMigrator
       when :xml
         ZendeskMailMigrator::XMLConversion
       when :json
-        ZendeskMailMigrator::XMLConversion #json conversion to be implemented in a later version
-      when :test
-        ZendeskMailMigrator::XMLConversion #can use standard xml conversion when testing delivery
+        ZendeskMailMigrator::JSONConversion
+      when :xmltest
+        ZendeskMailMigrator::XMLConversion
+      when :jsontest
+        ZendeskMailMigrator::JSONConversion
       else
         method
       end
